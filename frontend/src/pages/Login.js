@@ -5,66 +5,52 @@ import { useNavigate } from "react-router-dom";
 
 export default function Login() {
   const [form, setForm] = useState({});
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const login = async () => {
-    try {
-      setLoading(true);
-      const res = await axios.post(`${BASE_URL}/api/auth/login`, form);
-      localStorage.setItem("token", res.data.token);
-      navigate("/chat");
-    } catch (err) {
-      alert("Login failed");
-    } finally {
-      setLoading(false);
-    }
+    const res = await axios.post(`${BASE_URL}/api/auth/login`, form);
+    localStorage.setItem("token", res.data.token);
+    navigate("/chat");
   };
 
   return (
-    <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-blue-200 to-blue-300">
+    <div className="h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-purple-900">
 
-      <div className="bg-white/30 backdrop-blur-xl border border-white/20 shadow-xl rounded-2xl p-8 w-full max-w-md">
+      <div className="bg-white/10 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl p-8 w-full max-w-md">
 
-        <h2 className="text-2xl font-semibold text-center text-gray-800 mb-6">
-          Welcome Back
+        <h2 className="text-2xl font-semibold text-center text-white mb-6">
+          Welcome Back 👋
         </h2>
 
         <div className="space-y-4">
 
           <input
-            type="email"
             placeholder="Email"
-            className="w-full px-4 py-2 rounded-lg bg-white/70 border focus:outline-none focus:ring-2 focus:ring-blue-400"
-            onChange={(e) =>
-              setForm({ ...form, email: e.target.value })
-            }
+            className="w-full px-4 py-2 rounded-lg bg-black/30 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            onChange={e => setForm({...form, email: e.target.value})}
           />
 
           <input
             type="password"
             placeholder="Password"
-            className="w-full px-4 py-2 rounded-lg bg-white/70 border focus:outline-none focus:ring-2 focus:ring-blue-400"
-            onChange={(e) =>
-              setForm({ ...form, password: e.target.value })
-            }
+            className="w-full px-4 py-2 rounded-lg bg-black/30 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            onChange={e => setForm({...form, password: e.target.value})}
           />
 
           <button
             onClick={login}
-            disabled={loading}
-            className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition"
+            className="w-full bg-purple-500 hover:bg-purple-600 text-white py-2 rounded-lg transition"
           >
-            {loading ? "Logging in..." : "Login"}
+            Login
           </button>
 
         </div>
 
-        <p className="text-sm text-gray-600 text-center mt-4">
+        <p className="text-sm text-gray-400 text-center mt-4">
           Don’t have an account?{" "}
           <span
             onClick={() => navigate("/register")}
-            className="text-blue-600 cursor-pointer hover:underline"
+            className="text-purple-400 cursor-pointer hover:underline"
           >
             Register
           </span>
