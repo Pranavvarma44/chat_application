@@ -26,7 +26,7 @@ export default function Register() {
       <div className="bg-white/30 backdrop-blur-xl border border-white/20 shadow-xl rounded-2xl p-8 w-full max-w-md">
 
         <h2 className="text-2xl font-semibold text-center text-gray-800 mb-6">
-          Create Account ✨
+          Create Account 
         </h2>
 
         <div className="space-y-4">

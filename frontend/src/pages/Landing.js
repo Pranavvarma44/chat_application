@@ -40,7 +40,7 @@ export default function Landing() {
         <div className="bg-white/30 backdrop-blur-xl border border-white/20 shadow-xl rounded-3xl p-10 max-w-2xl text-center">
 
           <h2 className="text-4xl font-bold text-gray-800 mb-4">
-            Real-Time Chat, Reinvented 🚀
+            Real-Time Chat
           </h2>
 
           <p className="text-gray-600 mb-6">
