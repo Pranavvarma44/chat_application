@@ -26,7 +26,7 @@ export default function Landing() {
       <div className="flex flex-1 items-center justify-center">
         <div className="bg-white/10 backdrop-blur-xl border border-white/10 p-10 rounded-2xl text-center">
           <h2 className="text-4xl font-bold mb-4">
-            Real-Time Chat 🚀
+            Real-Time Chat 
           </h2>
           <p className="text-gray-400 mb-6">
             Modern messaging with sockets & real-time updates.
