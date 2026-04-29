@@ -304,7 +304,7 @@ export default function Chat() {
 
           {m.status === "delivered" && "✔✔"}
 
-          {m.status === "seen" && "✔✔ 💜"}
+          {m.status === "seen" && "✔✔ READ"}
 
         </div>
 
