@@ -2,59 +2,76 @@ import { useNavigate } from "react-router-dom";
 
 export default function Landing() {
   const navigate = useNavigate();
-
   const token = localStorage.getItem("token");
 
   const goToChat = () => {
-    if (token) {
-      navigate("/chat");
-    } else {
-      navigate("/login");
-    }
+    if (token) navigate("/chat");
+    else navigate("/login");
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-blue-100 to-purple-200 flex flex-col">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-blue-100 via-blue-200 to-blue-300">
 
-      {/* NAVBAR */}
-      <div className="flex justify-between items-center px-8 py-4 bg-white shadow">
-        <h1 className="text-xl font-bold text-blue-600">ChatApp</h1>
+      {/* 🔝 NAVBAR */}
+      <div className="flex justify-between items-center px-8 py-4 bg-white/30 backdrop-blur-xl border-b border-white/20 shadow-sm">
+        <h1 className="text-xl font-semibold text-gray-800">
+          ChatApp 💬
+        </h1>
 
-        <div className="flex gap-4">
+        <div className="flex items-center gap-4">
           <button
             onClick={() => navigate("/login")}
-            className="text-blue-500 hover:underline"
+            className="text-gray-700 hover:text-blue-600 transition"
           >
             Login
           </button>
 
           <button
             onClick={goToChat}
-            className="bg-blue-500 text-white px-4 py-1 rounded-lg hover:bg-blue-600"
+            className="bg-blue-500 text-white px-5 py-2 rounded-full hover:bg-blue-600 transition shadow-md"
           >
-            Chat
+            Open Chat
           </button>
         </div>
       </div>
 
-      {/* HERO */}
-      <div className="flex flex-1 items-center justify-center text-center px-4">
-        <div>
-          <h2 className="text-4xl font-bold mb-4">
-            Real-time Chat Application 💬
+      {/* 💡 HERO SECTION */}
+      <div className="flex flex-1 items-center justify-center px-4">
+        <div className="bg-white/30 backdrop-blur-xl border border-white/20 shadow-xl rounded-3xl p-10 max-w-2xl text-center">
+
+          <h2 className="text-4xl font-bold text-gray-800 mb-4">
+            Real-Time Chat, Reinvented 🚀
           </h2>
 
           <p className="text-gray-600 mb-6">
-            Chat with friends, create groups, and enjoy real-time messaging.
+            Connect instantly with friends, create groups, and enjoy seamless
+            messaging with modern UI and real-time updates.
           </p>
 
-          <button
-            onClick={goToChat}
-            className="bg-blue-500 text-white px-6 py-3 rounded-full hover:bg-blue-600"
-          >
-            Start Chatting
-          </button>
+          <div className="flex justify-center gap-4">
+
+            <button
+              onClick={goToChat}
+              className="bg-blue-500 text-white px-6 py-3 rounded-full hover:bg-blue-600 transition shadow-md"
+            >
+              Start Chatting
+            </button>
+
+            <button
+              onClick={() => navigate("/register")}
+              className="bg-white/60 px-6 py-3 rounded-full hover:bg-white transition shadow"
+            >
+              Create Account
+            </button>
+
+          </div>
+
         </div>
+      </div>
+
+      {/* 🔽 FOOTER */}
+      <div className="text-center text-gray-500 text-sm pb-4">
+        © {new Date().getFullYear()} ChatApp • Built with ❤️
       </div>
     </div>
   );
