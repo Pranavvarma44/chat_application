@@ -247,35 +247,74 @@ export default function Chat() {
               const isMe = m.sender?._id === currentUserId;
 
               return (
-                <div
-                  key={i}
-                  className={`flex ${isMe ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-sm px-4 py-2 rounded-2xl ${
-                      isMe
-                        ? "bg-purple-600 text-white rounded-br-none"
-                        : "bg-white/10 text-gray-200 backdrop-blur-md rounded-bl-none"
-                    }`}
-                  >
-                    {m.text}
 
-                    <div className="text-[10px] opacity-60 text-right mt-1">
-                      {new Date(m.timestamp).toLocaleTimeString()}
-                    </div>
+    <div
 
-                    {isMe && (
-                      <div className="text-xs text-right">
-                        {m.status === "sent" && "✔"}
-                        {m.status === "delivered" && "✔✔"}
-                        {m.status === "seen" && "✔✔ 💜"}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+      key={i}
 
+      className={`flex flex-col ${
+
+        isMe ? "items-end" : "items-start"
+
+      }`}
+
+    >
+
+      {/* MESSAGE BUBBLE */}
+
+      <div
+
+        className={`max-w-sm px-4 py-2 rounded-2xl ${
+
+          isMe
+
+            ? "bg-purple-600 text-white rounded-br-none"
+
+            : "bg-white/10 text-gray-200 backdrop-blur-md rounded-bl-none"
+
+        }`}
+
+      >
+
+        {m.text}
+
+        {/* ⏱ TIME */}
+
+        <div className="text-[10px] opacity-60 mt-1 text-right">
+
+          {new Date(m.timestamp).toLocaleTimeString([], {
+
+            hour: "2-digit",
+
+            minute: "2-digit",
+
+          })}
+
+        </div>
+
+      </div>
+
+      {/* ✔ STATUS BELOW */}
+
+      {isMe && (
+
+        <div className="text-xs mt-1 mr-1 opacity-70">
+
+          {m.status === "sent" && "✔"}
+
+          {m.status === "delivered" && "✔✔"}
+
+          {m.status === "seen" && "✔✔ 💜"}
+
+        </div>
+
+      )}
+
+    </div>
+
+  );
+
+})}
             <div ref={bottomRef} />
           </div>
 
