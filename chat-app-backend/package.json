@@ -1,0 +1,23 @@
+{
+  "name": "chat-app-backend",
+  "version": "1.0.0",
+  "description": "Real-time chat backend",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.0.0",
+    "sib-api-v3-sdk": "^8.5.0",
+    "socket.io": "^4.8.3"
+  }
+}

@@ -1,0 +1,82 @@
+import { useState } from "react";
+import axios from "axios";
+import BASE_URL from "../api";
+import { useNavigate } from "react-router-dom";
+
+export default function Register() {
+  const [form, setForm] = useState({});
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const register = async () => {
+    try {
+      setLoading(true);
+      await axios.post(`${BASE_URL}/api/auth/register`, form);
+      navigate("/verify", { state: { email: form.email } });
+    } catch (err) {
+      alert("Registration failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-purple-900 text-white">
+
+      <div className="bg-white/10 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl p-8 w-full max-w-md">
+
+        <h2 className="text-2xl font-semibold text-center mb-6">
+          Create Account ✨
+        </h2>
+
+        <div className="space-y-4">
+
+          <input
+            placeholder="Username"
+            className="w-full px-4 py-2 rounded-lg bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            onChange={(e) =>
+              setForm({ ...form, username: e.target.value })
+            }
+          />
+
+          <input
+            placeholder="Email"
+            className="w-full px-4 py-2 rounded-lg bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            onChange={(e) =>
+              setForm({ ...form, email: e.target.value })
+            }
+          />
+
+          <input
+            type="password"
+            placeholder="Password"
+            className="w-full px-4 py-2 rounded-lg bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            onChange={(e) =>
+              setForm({ ...form, password: e.target.value })
+            }
+          />
+
+          <button
+            onClick={register}
+            disabled={loading}
+            className="w-full bg-purple-500 hover:bg-purple-600 py-2 rounded-lg transition font-medium"
+          >
+            {loading ? "Creating..." : "Register"}
+          </button>
+
+        </div>
+
+        <p className="text-sm text-gray-400 text-center mt-4">
+          Already have an account?{" "}
+          <span
+            onClick={() => navigate("/login")}
+            className="text-purple-400 cursor-pointer hover:underline"
+          >
+            Login
+          </span>
+        </p>
+
+      </div>
+    </div>
+  );
+}
