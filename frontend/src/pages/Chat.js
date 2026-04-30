@@ -31,12 +31,12 @@ export default function Chat() {
     ? [currentUserId, selectedUser._id].sort().join("_")
     : null;
 
-  // 🔁 keep room ref
+  // keep room ref
   useEffect(() => {
     roomRef.current = room;
   }, [room]);
 
-  // 🔽 auto scroll
+  // auto scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -77,7 +77,7 @@ export default function Chat() {
 
     socketRef.current = createSocket(token);
 
-    // 📩 receive message
+    // receive message
     socketRef.current.on("receive_message", (msg) => {
       setMessages((prev) => [...prev, msg]);
 
@@ -93,7 +93,7 @@ export default function Chat() {
       }
     });
 
-    // ✔ status update
+    // message status
     socketRef.current.on("message_status", ({ messageId, status }) => {
       setMessages((prev) =>
         prev.map((m) =>
@@ -102,10 +102,10 @@ export default function Chat() {
       );
     });
 
-    // 🟢 online users
+    // online users
     socketRef.current.on("online_users", setOnlineUsers);
 
-    // ⌨️ typing
+    // typing
     socketRef.current.on("typing", ({ userId }) => {
       if (userId === currentUserId) return;
 
@@ -152,9 +152,7 @@ export default function Chat() {
       });
   }, [room, token, currentUserId]);
 
-  // =========================
-  // SEND MESSAGE
-  // =========================
+  // send message
   const sendMessage = () => {
     if (!text.trim() || !room) return;
 
@@ -163,9 +161,7 @@ export default function Chat() {
     setText("");
   };
 
-  // =========================
-  // TYPING HANDLER
-  // =========================
+  // typing handler
   const handleTyping = (e) => {
     setText(e.target.value);
 
@@ -180,7 +176,7 @@ export default function Chat() {
     }, 1000);
   };
 
-  // 🧠 typing names
+  // typing names
   const typingNames = users
     .filter((u) => typingUsers.includes(u._id))
     .map((u) => u.username);
@@ -201,22 +197,32 @@ export default function Chat() {
 
             <p className="text-xs text-gray-400 mb-2">Users</p>
 
-            {users.map((user) => (
-              <div
-                key={user._id}
-                onClick={() => {
-                  setSelectedUser(user);
-                  setSelectedGroup(null);
-                }}
-                className={`p-3 rounded-lg cursor-pointer mb-2 ${
-                  selectedUser?._id === user._id
-                    ? "bg-purple-600"
-                    : "hover:bg-gray-800"
-                }`}
-              >
-                {user.username}
-              </div>
-            ))}
+            {users.map((user) => {
+              const isOnline = onlineUsers.includes(user._id);
+
+              return (
+                <div
+                  key={user._id}
+                  onClick={() => {
+                    setSelectedUser(user);
+                    setSelectedGroup(null);
+                  }}
+                  className={`flex justify-between items-center p-3 rounded-lg cursor-pointer mb-2 ${
+                    selectedUser?._id === user._id
+                      ? "bg-purple-600"
+                      : "hover:bg-gray-800"
+                  }`}
+                >
+                  <span>{user.username}</span>
+
+                  <span
+                    className={`w-2.5 h-2.5 rounded-full ${
+                      isOnline ? "bg-green-500" : "bg-gray-500"
+                    }`}
+                  />
+                </div>
+              );
+            })}
 
             <p className="text-xs text-gray-400 mt-4 mb-2">Groups</p>
 
@@ -239,7 +245,7 @@ export default function Chat() {
           </div>
         </div>
 
-        {/* CHAT */}
+        {/* CHAT AREA */}
         <div className="flex flex-col flex-1">
 
           {/* HEADER */}
