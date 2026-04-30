@@ -14,6 +14,11 @@ export default function Chat() {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [typingUsers, setTypingUsers] = useState([]);
 
+  // 🔥 NEW STATES
+  const [showModal, setShowModal] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [selectedUsers, setSelectedUsers] = useState([]);
+
   const socketRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const roomRef = useRef(null);
@@ -31,12 +36,10 @@ export default function Chat() {
     ? [currentUserId, selectedUser._id].sort().join("_")
     : null;
 
-  // keep room ref
   useEffect(() => {
     roomRef.current = room;
   }, [room]);
 
-  // auto scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -70,14 +73,13 @@ export default function Chat() {
   }, [token]);
 
   // =========================
-  // SOCKET INIT
+  // SOCKET
   // =========================
   useEffect(() => {
     if (!token) return;
 
     socketRef.current = createSocket(token);
 
-    // receive message
     socketRef.current.on("receive_message", (msg) => {
       setMessages((prev) => [...prev, msg]);
 
@@ -93,7 +95,6 @@ export default function Chat() {
       }
     });
 
-    // message status
     socketRef.current.on("message_status", ({ messageId, status }) => {
       setMessages((prev) =>
         prev.map((m) =>
@@ -102,10 +103,8 @@ export default function Chat() {
       );
     });
 
-    // online users
     socketRef.current.on("online_users", setOnlineUsers);
 
-    // typing
     socketRef.current.on("typing", ({ userId }) => {
       if (userId === currentUserId) return;
 
@@ -152,7 +151,9 @@ export default function Chat() {
       });
   }, [room, token, currentUserId]);
 
-  // send message
+  // =========================
+  // SEND MESSAGE
+  // =========================
   const sendMessage = () => {
     if (!text.trim() || !room) return;
 
@@ -161,7 +162,6 @@ export default function Chat() {
     setText("");
   };
 
-  // typing handler
   const handleTyping = (e) => {
     setText(e.target.value);
 
@@ -176,7 +176,41 @@ export default function Chat() {
     }, 1000);
   };
 
-  // typing names
+  // =========================
+  // CREATE GROUP
+  // =========================
+  const createGroup = async () => {
+    if (!groupName || selectedUsers.length === 0) {
+      alert("Enter name and select users");
+      return;
+    }
+
+    try {
+      await axios.post(
+        `${BASE_URL}/api/groups`,
+        {
+          name: groupName,
+          members: selectedUsers,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setShowModal(false);
+      setGroupName("");
+      setSelectedUsers([]);
+
+      const res = await axios.get(`${BASE_URL}/api/groups`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setGroups(res.data);
+    } catch (err) {
+      alert("Failed to create group");
+    }
+  };
+
   const typingNames = users
     .filter((u) => typingUsers.includes(u._id))
     .map((u) => u.username);
@@ -189,66 +223,56 @@ export default function Chat() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* SIDEBAR */}
-        <div className="w-1/4 bg-black/60 backdrop-blur-lg border-r border-gray-800 p-4">
+        <div className="w-1/4 bg-black/60 border-r border-gray-800 p-4">
 
-          <h2 className="text-xl mb-4">Chats</h2>
+          <button
+            onClick={() => setShowModal(true)}
+            className="w-full mb-3 bg-purple-600 py-2 rounded"
+          >
+            + Create Group
+          </button>
 
-          <div className="overflow-y-auto">
+          <p className="text-xs text-gray-400 mb-2">Users</p>
 
-            <p className="text-xs text-gray-400 mb-2">Users</p>
+          {users.map((user) => {
+            const isOnline = onlineUsers.includes(user._id);
 
-            {users.map((user) => {
-              const isOnline = onlineUsers.includes(user._id);
-
-              return (
-                <div
-                  key={user._id}
-                  onClick={() => {
-                    setSelectedUser(user);
-                    setSelectedGroup(null);
-                  }}
-                  className={`flex justify-between items-center p-3 rounded-lg cursor-pointer mb-2 ${
-                    selectedUser?._id === user._id
-                      ? "bg-purple-600"
-                      : "hover:bg-gray-800"
-                  }`}
-                >
-                  <span>{user.username}</span>
-
-                  <span
-                    className={`w-2.5 h-2.5 rounded-full ${
-                      isOnline ? "bg-green-500" : "bg-gray-500"
-                    }`}
-                  />
-                </div>
-              );
-            })}
-
-            <p className="text-xs text-gray-400 mt-4 mb-2">Groups</p>
-
-            {groups.map((group) => (
+            return (
               <div
-                key={group._id}
+                key={user._id}
                 onClick={() => {
-                  setSelectedGroup(group);
-                  setSelectedUser(null);
+                  setSelectedUser(user);
+                  setSelectedGroup(null);
                 }}
-                className={`p-3 rounded-lg cursor-pointer mb-2 ${
-                  selectedGroup?._id === group._id
-                    ? "bg-purple-600"
-                    : "hover:bg-gray-800"
-                }`}
+                className="flex justify-between p-2 hover:bg-gray-800 rounded cursor-pointer"
               >
-                {group.name}
+                {user.username}
+                <span className={isOnline ? "text-green-500" : "text-gray-500"}>
+                  ●
+                </span>
               </div>
-            ))}
-          </div>
+            );
+          })}
+
+          <p className="text-xs text-gray-400 mt-4 mb-2">Groups</p>
+
+          {groups.map((group) => (
+            <div
+              key={group._id}
+              onClick={() => {
+                setSelectedGroup(group);
+                setSelectedUser(null);
+              }}
+              className="p-2 hover:bg-gray-800 rounded cursor-pointer"
+            >
+              {group.name}
+            </div>
+          ))}
         </div>
 
-        {/* CHAT AREA */}
+        {/* CHAT */}
         <div className="flex flex-col flex-1">
 
-          {/* HEADER */}
           <div className="p-4 border-b border-gray-800 flex justify-between">
             <h2>
               {selectedUser?.username || selectedGroup?.name || "Select Chat"}
@@ -256,71 +280,84 @@ export default function Chat() {
 
             {typingUsers.length > 0 && (
               <span className="text-purple-400 text-sm italic">
-                {typingNames.length === 1
-                  ? `${typingNames[0]} is typing...`
-                  : `${typingNames.join(", ")} are typing...`}
+                {typingNames.join(", ")} typing...
               </span>
             )}
           </div>
 
-          {/* MESSAGES */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {messages.map((m, i) => {
               const isMe = m.sender?._id === currentUserId;
 
               return (
-                <div
-                  key={i}
-                  className={`flex ${isMe ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`px-4 py-2 rounded-xl ${
-                      isMe
-                        ? "bg-purple-600 text-white"
-                        : "bg-gray-800 text-white"
-                    }`}
-                  >
+                <div key={i} className={isMe ? "text-right" : "text-left"}>
+                  <div className={isMe ? "bg-purple-600 inline-block p-2 rounded" : "bg-gray-800 inline-block p-2 rounded"}>
                     {m.text}
-
-                    <div className="text-xs opacity-60 text-right">
-                      {new Date(m.timestamp).toLocaleTimeString()}
-                    </div>
-
-                    {isMe && (
-                      <div className="text-xs text-right">
-                        {m.status === "sent" && "✔"}
-                        {m.status === "delivered" && "✔✔"}
-                        {m.status === "seen" && "✔✔ 💜"}
-                      </div>
-                    )}
                   </div>
                 </div>
               );
             })}
-
             <div ref={bottomRef} />
           </div>
 
-          {/* INPUT */}
           {(selectedUser || selectedGroup) && (
-            <div className="p-4 border-t border-gray-800 flex gap-2">
+            <div className="p-4 flex gap-2">
               <input
                 value={text}
                 onChange={handleTyping}
-                className="flex-1 px-4 py-2 rounded-full bg-gray-800"
-                placeholder="Type a message..."
+                className="flex-1 bg-gray-800 px-4 py-2 rounded"
               />
-
-              <button
-                onClick={sendMessage}
-                className="bg-purple-600 px-4 rounded-full"
-              >
+              <button onClick={sendMessage} className="bg-purple-600 px-4 rounded">
                 Send
               </button>
             </div>
           )}
         </div>
       </div>
+
+      {/* MODAL */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center">
+          <div className="bg-gray-900 p-6 rounded w-80">
+
+            <input
+              placeholder="Group name"
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              className="w-full mb-3 bg-gray-800 px-3 py-2 rounded"
+            />
+
+            <div className="max-h-40 overflow-y-auto">
+              {users.map((user) => (
+                <div
+                  key={user._id}
+                  onClick={() =>
+                    setSelectedUsers((prev) =>
+                      prev.includes(user._id)
+                        ? prev.filter((id) => id !== user._id)
+                        : [...prev, user._id]
+                    )
+                  }
+                  className={`p-2 cursor-pointer ${
+                    selectedUsers.includes(user._id)
+                      ? "bg-purple-600"
+                      : ""
+                  }`}
+                >
+                  {user.username}
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={createGroup}
+              className="w-full mt-3 bg-purple-600 py-2 rounded"
+            >
+              Create
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
