@@ -12,7 +12,7 @@ export default function Chat() {
   const [users, setUsers] = useState([]);
   const [groups, setGroups] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
-  const [typingUserId, setTypingUserId] = useState(null);
+  const [typingUsers, setTypingUsers] = useState([]);
 
   const socketRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -31,28 +31,19 @@ export default function Chat() {
     ? [currentUserId, selectedUser._id].sort().join("_")
     : null;
 
-  // keep room reference
+  // 🔁 keep room ref
   useEffect(() => {
     roomRef.current = room;
   }, [room]);
 
-  // auto scroll
+  // 🔽 auto scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // fetch groups
-  useEffect(() => {
-    if (!token) return;
-
-    axios
-      .get(`${BASE_URL}/api/groups`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => setGroups(res.data));
-  }, [token]);
-
-  // fetch users
+  // =========================
+  // FETCH USERS
+  // =========================
   useEffect(() => {
     if (!token || !currentUserId) return;
 
@@ -65,12 +56,28 @@ export default function Chat() {
       });
   }, [token, currentUserId]);
 
-  // socket setup
+  // =========================
+  // FETCH GROUPS
+  // =========================
+  useEffect(() => {
+    if (!token) return;
+
+    axios
+      .get(`${BASE_URL}/api/groups`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => setGroups(res.data));
+  }, [token]);
+
+  // =========================
+  // SOCKET INIT
+  // =========================
   useEffect(() => {
     if (!token) return;
 
     socketRef.current = createSocket(token);
 
+    // 📩 receive message
     socketRef.current.on("receive_message", (msg) => {
       setMessages((prev) => [...prev, msg]);
 
@@ -86,6 +93,7 @@ export default function Chat() {
       }
     });
 
+    // ✔ status update
     socketRef.current.on("message_status", ({ messageId, status }) => {
       setMessages((prev) =>
         prev.map((m) =>
@@ -94,25 +102,36 @@ export default function Chat() {
       );
     });
 
+    // 🟢 online users
     socketRef.current.on("online_users", setOnlineUsers);
 
+    // ⌨️ typing
     socketRef.current.on("typing", ({ userId }) => {
-      if (userId !== currentUserId) setTypingUserId(userId);
+      if (userId === currentUserId) return;
+
+      setTypingUsers((prev) => {
+        if (prev.includes(userId)) return prev;
+        return [...prev, userId];
+      });
     });
 
-    socketRef.current.on("stop_typing", () => {
-      setTypingUserId(null);
+    socketRef.current.on("stop_typing", ({ userId }) => {
+      setTypingUsers((prev) =>
+        prev.filter((id) => id !== userId)
+      );
     });
 
     return () => socketRef.current.disconnect();
   }, [token, currentUserId]);
 
-  // room change
+  // =========================
+  // ROOM CHANGE
+  // =========================
   useEffect(() => {
     if (!room || !token) return;
 
     setMessages([]);
-    setTypingUserId(null);
+    setTypingUsers([]);
 
     socketRef.current.emit("join_room", room);
 
@@ -133,7 +152,9 @@ export default function Chat() {
       });
   }, [room, token, currentUserId]);
 
-  // send message
+  // =========================
+  // SEND MESSAGE
+  // =========================
   const sendMessage = () => {
     if (!text.trim() || !room) return;
 
@@ -142,7 +163,9 @@ export default function Chat() {
     setText("");
   };
 
-  // typing
+  // =========================
+  // TYPING HANDLER
+  // =========================
   const handleTyping = (e) => {
     setText(e.target.value);
 
@@ -157,149 +180,134 @@ export default function Chat() {
     }, 1000);
   };
 
+  // 🧠 typing names
+  const typingNames = users
+    .filter((u) => typingUsers.includes(u._id))
+    .map((u) => u.username);
+
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-black via-gray-900 to-purple-900 text-white">
-      
+    <div className="h-screen flex flex-col bg-black text-white">
+
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden">
 
         {/* SIDEBAR */}
-        <div className="w-1/4 bg-white/5 backdrop-blur-xl border-r border-white/10 p-4 flex flex-col">
-          
-          <h2 className="text-xl font-semibold mb-4 text-purple-400">
-            Chats
-          </h2>
+        <div className="w-1/4 bg-black/60 backdrop-blur-lg border-r border-gray-800 p-4">
 
-          <div className="flex-1 overflow-y-auto">
+          <h2 className="text-xl mb-4">Chats</h2>
+
+          <div className="overflow-y-auto">
 
             <p className="text-xs text-gray-400 mb-2">Users</p>
 
-            {users.map((user) => {
-              const isOnline = onlineUsers.includes(user._id);
-              const isActive = selectedUser?._id === user._id;
+            {users.map((user) => (
+              <div
+                key={user._id}
+                onClick={() => {
+                  setSelectedUser(user);
+                  setSelectedGroup(null);
+                }}
+                className={`p-3 rounded-lg cursor-pointer mb-2 ${
+                  selectedUser?._id === user._id
+                    ? "bg-purple-600"
+                    : "hover:bg-gray-800"
+                }`}
+              >
+                {user.username}
+              </div>
+            ))}
 
-              return (
-                <div
-                  key={user._id}
-                  onClick={() => {
-                    setSelectedUser(user);
-                    setSelectedGroup(null);
-                  }}
-                  className={`flex justify-between px-4 py-3 rounded-xl mb-2 cursor-pointer ${
-                    isActive
-                      ? "bg-purple-600 text-white"
-                      : "hover:bg-white/10"
-                  }`}
-                >
-                  {user.username}
-                  <span className={isOnline ? "text-green-500" : "text-gray-500"}>
-                    ●
-                  </span>
-                </div>
-              );
-            })}
+            <p className="text-xs text-gray-400 mt-4 mb-2">Groups</p>
 
-            <p className="text-xs text-gray-400 mt-6 mb-2">Groups</p>
-
-            {groups.map((group) => {
-              const isActive = selectedGroup?._id === group._id;
-
-              return (
-                <div
-                  key={group._id}
-                  onClick={() => {
-                    setSelectedGroup(group);
-                    setSelectedUser(null);
-                  }}
-                  className={`px-4 py-3 rounded-xl mb-2 cursor-pointer ${
-                    isActive
-                      ? "bg-purple-600 text-white"
-                      : "hover:bg-white/10"
-                  }`}
-                >
-                  {group.name}
-                </div>
-              );
-            })}
+            {groups.map((group) => (
+              <div
+                key={group._id}
+                onClick={() => {
+                  setSelectedGroup(group);
+                  setSelectedUser(null);
+                }}
+                className={`p-3 rounded-lg cursor-pointer mb-2 ${
+                  selectedGroup?._id === group._id
+                    ? "bg-purple-600"
+                    : "hover:bg-gray-800"
+                }`}
+              >
+                {group.name}
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* CHAT AREA */}
+        {/* CHAT */}
         <div className="flex flex-col flex-1">
 
           {/* HEADER */}
-          <div className="bg-white/5 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex justify-between">
-            <h2 className="text-purple-300">
-              {selectedUser?.username || selectedGroup?.name || "Select chat"}
+          <div className="p-4 border-b border-gray-800 flex justify-between">
+            <h2>
+              {selectedUser?.username || selectedGroup?.name || "Select Chat"}
             </h2>
 
-            {typingUserId && (
-              <span className="text-purple-400 text-sm">
-                Typing...
+            {typingUsers.length > 0 && (
+              <span className="text-purple-400 text-sm italic">
+                {typingNames.length === 1
+                  ? `${typingNames[0]} is typing...`
+                  : `${typingNames.join(", ")} are typing...`}
               </span>
             )}
           </div>
 
           {/* MESSAGES */}
-          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
-          {messages.map((m, i) => {
-            const isMe = m.sender?._id === currentUserId;
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {messages.map((m, i) => {
+              const isMe = m.sender?._id === currentUserId;
 
-            return (
-              <div
-                key={i}
-                className={`flex flex-col ${
-                  isMe ? "items-end" : "items-start"
-                }`}
-              >
-                {/* MESSAGE BUBBLE */}
+              return (
                 <div
-                  className={`max-w-sm px-4 py-2 rounded-2xl ${
-                    isMe
-                      ? "bg-purple-600 text-white rounded-br-none"
-                      : "bg-white/10 text-gray-200 backdrop-blur-md rounded-bl-none"
-                  }`}
+                  key={i}
+                  className={`flex ${isMe ? "justify-end" : "justify-start"}`}
                 >
-                  {m.text}
+                  <div
+                    className={`px-4 py-2 rounded-xl ${
+                      isMe
+                        ? "bg-purple-600 text-white"
+                        : "bg-gray-800 text-white"
+                    }`}
+                  >
+                    {m.text}
 
-                  {/* ⏱ TIME */}
-                  <div className="text-[10px] opacity-60 mt-1 text-right">
-                    {new Date(m.timestamp).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    <div className="text-xs opacity-60 text-right">
+                      {new Date(m.timestamp).toLocaleTimeString()}
+                    </div>
+
+                    {isMe && (
+                      <div className="text-xs text-right">
+                        {m.status === "sent" && "✔"}
+                        {m.status === "delivered" && "✔✔"}
+                        {m.status === "seen" && "✔✔ 💜"}
+                      </div>
+                    )}
                   </div>
                 </div>
-
-                {/* ✔ STATUS BELOW */}
-                {isMe && (
-                  <div className="text-xs mt-1 mr-1 opacity-70">
-                    {m.status === "sent" && "✔"}
-                    {m.status === "delivered" && "✔✔"}
-                    {m.status === "seen" && "✔✔ Read"}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
 
             <div ref={bottomRef} />
           </div>
 
           {/* INPUT */}
           {(selectedUser || selectedGroup) && (
-            <div className="p-4 bg-white/5 border-t border-white/10 flex gap-3">
+            <div className="p-4 border-t border-gray-800 flex gap-2">
               <input
                 value={text}
                 onChange={handleTyping}
-                className="flex-1 px-4 py-2 rounded-full bg-black/40 border border-white/10 focus:ring-2 focus:ring-purple-500 outline-none"
-                placeholder="Type message..."
+                className="flex-1 px-4 py-2 rounded-full bg-gray-800"
+                placeholder="Type a message..."
               />
 
               <button
                 onClick={sendMessage}
-                className="bg-purple-500 hover:bg-purple-600 px-6 py-2 rounded-full"
+                className="bg-purple-600 px-4 rounded-full"
               >
                 Send
               </button>
