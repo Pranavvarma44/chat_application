@@ -79,7 +79,7 @@ export default function Chat() {
         });
       }
 
-      // 🔥 move active group to top
+      // move group to top
       if (msg.room.startsWith("group_")) {
         const groupId = msg.room.replace("group_", "");
 
@@ -99,6 +99,7 @@ export default function Chat() {
 
     socketRef.current.on("online_users", setOnlineUsers);
 
+    // ✅ TYPING FIX (USED NOW)
     socketRef.current.on("typing", ({ userId }) => {
       if (userId === currentUserId) return;
 
@@ -121,6 +122,7 @@ export default function Chat() {
     if (!room || !token) return;
 
     setMessages([]);
+    setTypingUsers([]);
 
     socketRef.current.emit("join_room", room);
 
@@ -136,6 +138,7 @@ export default function Chat() {
     if (!text.trim() || !room) return;
 
     socketRef.current.emit("send_message", { room, text });
+    socketRef.current.emit("stop_typing", room);
     setText("");
   };
 
@@ -213,10 +216,19 @@ export default function Chat() {
         {/* CHAT AREA */}
         <div className="flex flex-col flex-1">
 
-          <div className="p-4 border-b border-gray-800">
+          {/* HEADER WITH TYPING */}
+          <div className="p-4 border-b border-gray-800 flex justify-between">
             <h2>
               {selectedUser?.username || selectedGroup?.name || "Select Chat"}
             </h2>
+
+            {typingUsers.length > 0 && (
+              <span className="text-purple-400 text-sm italic">
+                {typingUsers.length === 1
+                  ? "Someone is typing..."
+                  : "Multiple users typing..."}
+              </span>
+            )}
           </div>
 
           {/* MESSAGES */}
