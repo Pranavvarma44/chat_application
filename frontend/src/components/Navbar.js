@@ -1,28 +1,21 @@
 import { useNavigate } from "react-router-dom";
 
 export default function Navbar() {
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/login");
-  };
-
   return (
-    <div className="w-full bg-white shadow px-6 py-3 flex justify-between items-center">
+    <div className="w-full bg-white text-black px-6 py-4 flex justify-between items-center border-b border-gray-300 sticky top-0 z-50">
+      
+      <h1 className="text-xl font-semibold">ChatApp</h1>
 
-      {/* Left */}
-      <h1 className="text-xl font-semibold text-blue-600">
-        ChatApp
-      </h1>
-
-      {/* Right */}
       <button
-        onClick={handleLogout}
-        className="bg-red-500 text-white px-4 py-1 rounded-lg hover:bg-red-600 transition"
+        onClick={() => {
+          localStorage.removeItem("token");
+          window.location.href = "/login";
+        }}
+        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
       >
         Logout
       </button>
+
     </div>
   );
 }
