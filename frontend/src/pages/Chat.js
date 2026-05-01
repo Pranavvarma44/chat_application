@@ -14,13 +14,8 @@ export default function Chat() {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [typingUsers, setTypingUsers] = useState([]);
 
-  const [showModal, setShowModal] = useState(false);
-  const [groupName, setGroupName] = useState("");
-  const [selectedUsers, setSelectedUsers] = useState([]);
-
   const socketRef = useRef(null);
   const typingTimeoutRef = useRef(null);
-  const roomRef = useRef(null);
   const bottomRef = useRef(null);
 
   const token = localStorage.getItem("token");
@@ -35,19 +30,12 @@ export default function Chat() {
     ? [currentUserId, selectedUser._id].sort().join("_")
     : null;
 
-  // keep room ref
-  useEffect(() => {
-    roomRef.current = room;
-  }, [room]);
-
   // auto scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // =========================
-  // FETCH USERS
-  // =========================
+  // fetch users
   useEffect(() => {
     if (!token || !currentUserId) return;
 
@@ -55,14 +43,12 @@ export default function Chat() {
       .get(`${BASE_URL}/api/users`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      .then((res) => {
-        setUsers(res.data.filter((u) => u._id !== currentUserId));
-      });
+      .then((res) =>
+        setUsers(res.data.filter((u) => u._id !== currentUserId))
+      );
   }, [token, currentUserId]);
 
-  // =========================
-  // FETCH GROUPS (sorted)
-  // =========================
+  // fetch groups
   useEffect(() => {
     if (!token) return;
 
@@ -70,19 +56,10 @@ export default function Chat() {
       .get(`${BASE_URL}/api/groups`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      .then((res) => {
-        const sorted = res.data.sort(
-          (a, b) =>
-            new Date(b.lastMessageAt || 0) -
-            new Date(a.lastMessageAt || 0)
-        );
-        setGroups(sorted);
-      });
+      .then((res) => setGroups(res.data));
   }, [token]);
 
-  // =========================
-  // SOCKET
-  // =========================
+  // socket
   useEffect(() => {
     if (!token) return;
 
@@ -96,13 +73,13 @@ export default function Chat() {
         room: msg.room,
       });
 
-      if (msg.room === roomRef.current) {
+      if (msg.room === room) {
         socketRef.current.emit("message_seen", {
           messageId: msg._id,
         });
       }
 
-      // 🔥 MOVE ACTIVE GROUP TO TOP
+      // 🔥 move active group to top
       if (msg.room.startsWith("group_")) {
         const groupId = msg.room.replace("group_", "");
 
@@ -120,23 +97,14 @@ export default function Chat() {
       }
     });
 
-    socketRef.current.on("message_status", ({ messageId, status }) => {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m._id === messageId ? { ...m, status } : m
-        )
-      );
-    });
-
     socketRef.current.on("online_users", setOnlineUsers);
 
     socketRef.current.on("typing", ({ userId }) => {
       if (userId === currentUserId) return;
 
-      setTypingUsers((prev) => {
-        if (prev.includes(userId)) return prev;
-        return [...prev, userId];
-      });
+      setTypingUsers((prev) =>
+        prev.includes(userId) ? prev : [...prev, userId]
+      );
     });
 
     socketRef.current.on("stop_typing", ({ userId }) => {
@@ -146,16 +114,13 @@ export default function Chat() {
     });
 
     return () => socketRef.current.disconnect();
-  }, [token, currentUserId]);
+  }, [token, currentUserId, room]);
 
-  // =========================
-  // ROOM CHANGE
-  // =========================
+  // room change
   useEffect(() => {
     if (!room || !token) return;
 
     setMessages([]);
-    setTypingUsers([]);
 
     socketRef.current.emit("join_room", room);
 
@@ -163,27 +128,14 @@ export default function Chat() {
       .get(`${BASE_URL}/api/messages/${room}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      .then((res) => {
-        setMessages(res.data);
+      .then((res) => setMessages(res.data));
+  }, [room, token]);
 
-        res.data.forEach((msg) => {
-          if (msg.status !== "seen" && msg.sender?._id !== currentUserId) {
-            socketRef.current.emit("message_seen", {
-              messageId: msg._id,
-            });
-          }
-        });
-      });
-  }, [room, token, currentUserId]);
-
-  // =========================
-  // SEND MESSAGE
-  // =========================
+  // send message
   const sendMessage = () => {
     if (!text.trim() || !room) return;
 
     socketRef.current.emit("send_message", { room, text });
-    socketRef.current.emit("stop_typing", room);
     setText("");
   };
 
@@ -201,60 +153,15 @@ export default function Chat() {
     }, 1000);
   };
 
-  // =========================
-  // CREATE GROUP
-  // =========================
-  const createGroup = async () => {
-    if (!groupName || selectedUsers.length === 0) {
-      alert("Enter group name & select users");
-      return;
-    }
-
-    try {
-      await axios.post(
-        `${BASE_URL}/api/groups`,
-        {
-          name: groupName,
-          members: selectedUsers,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      setShowModal(false);
-      setGroupName("");
-      setSelectedUsers([]);
-
-      const res = await axios.get(`${BASE_URL}/api/groups`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setGroups(res.data);
-    } catch {
-      alert("Failed to create group");
-    }
-  };
-
-  const typingNames = users
-    .filter((u) => typingUsers.includes(u._id))
-    .map((u) => u.username);
-
   return (
-    <div className="h-screen flex flex-col bg-black text-white">
+    <div className="h-screen flex flex-col bg-black text-white overflow-hidden">
+
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden">
 
         {/* SIDEBAR */}
-        <div className="w-1/4 bg-black/60 border-r border-gray-800 p-4">
-
-          <button
-            onClick={() => setShowModal(true)}
-            className="w-full mb-3 bg-purple-600 py-2 rounded-lg"
-          >
-            + Create Group
-          </button>
+        <div className="w-1/4 bg-black/60 border-r border-gray-800 p-4 overflow-y-auto">
 
           <p className="text-xs text-gray-400 mb-2">Users</p>
 
@@ -306,18 +213,13 @@ export default function Chat() {
         {/* CHAT AREA */}
         <div className="flex flex-col flex-1">
 
-          <div className="p-4 border-b border-gray-800 flex justify-between">
+          <div className="p-4 border-b border-gray-800">
             <h2>
               {selectedUser?.username || selectedGroup?.name || "Select Chat"}
             </h2>
-
-            {typingUsers.length > 0 && (
-              <span className="text-purple-400 text-sm italic">
-                {typingNames.join(", ")} typing...
-              </span>
-            )}
           </div>
 
+          {/* MESSAGES */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {messages.map((m, i) => {
               const isMe = m.sender?._id === currentUserId;
@@ -333,8 +235,9 @@ export default function Chat() {
             <div ref={bottomRef} />
           </div>
 
+          {/* INPUT */}
           {(selectedUser || selectedGroup) && (
-            <div className="p-4 flex gap-2">
+            <div className="p-4 border-t border-gray-800 flex gap-2">
               <input
                 value={text}
                 onChange={handleTyping}
@@ -345,42 +248,9 @@ export default function Chat() {
               </button>
             </div>
           )}
+
         </div>
       </div>
-
-      {/* MODAL */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center">
-          <div className="bg-gray-900 p-6 rounded w-80">
-            <input
-              placeholder="Group name"
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
-              className="w-full mb-3 bg-gray-800 px-3 py-2 rounded"
-            />
-
-            {users.map((user) => (
-              <div
-                key={user._id}
-                onClick={() =>
-                  setSelectedUsers((prev) =>
-                    prev.includes(user._id)
-                      ? prev.filter((id) => id !== user._id)
-                      : [...prev, user._id]
-                  )
-                }
-                className={selectedUsers.includes(user._id) ? "bg-purple-600 p-2" : "p-2"}
-              >
-                {user.username}
-              </div>
-            ))}
-
-            <button onClick={createGroup} className="w-full mt-3 bg-purple-600 py-2 rounded">
-              Create
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
