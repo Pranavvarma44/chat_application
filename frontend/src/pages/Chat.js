@@ -326,7 +326,7 @@ export default function Chat() {
                       <div className="text-xs text-right">
                         {m.status === "sent" && "✔"}
                         {m.status === "delivered" && "✔✔"}
-                        {m.status === "seen" && "✔✔ 💜"}
+                        {m.status === "seen" && "✔✔ READ"}
                       </div>
                     )}
                   </div>
