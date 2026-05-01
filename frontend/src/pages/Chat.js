@@ -65,6 +65,7 @@ export default function Chat() {
 
     socketRef.current = createSocket(token);
 
+    // RECEIVE MESSAGE
     socketRef.current.on("receive_message", (msg) => {
       setMessages((prev) => [...prev, msg]);
 
@@ -97,9 +98,18 @@ export default function Chat() {
       }
     });
 
+    // ✅ MESSAGE STATUS FIX
+    socketRef.current.on("message_status", ({ messageId, status }) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === messageId ? { ...m, status } : m
+        )
+      );
+    });
+
     socketRef.current.on("online_users", setOnlineUsers);
 
-    // ✅ TYPING FIX (USED NOW)
+    // TYPING
     socketRef.current.on("typing", ({ userId }) => {
       if (userId === currentUserId) return;
 
@@ -155,6 +165,11 @@ export default function Chat() {
       socketRef.current.emit("stop_typing", room);
     }, 1000);
   };
+
+  // ✅ SHOW TYPING NAMES
+  const typingNames = users
+    .filter((u) => typingUsers.includes(u._id))
+    .map((u) => u.username);
 
   return (
     <div className="h-screen flex flex-col bg-black text-white overflow-hidden">
@@ -216,7 +231,7 @@ export default function Chat() {
         {/* CHAT AREA */}
         <div className="flex flex-col flex-1">
 
-          {/* HEADER WITH TYPING */}
+          {/* HEADER */}
           <div className="p-4 border-b border-gray-800 flex justify-between">
             <h2>
               {selectedUser?.username || selectedGroup?.name || "Select Chat"}
@@ -224,9 +239,9 @@ export default function Chat() {
 
             {typingUsers.length > 0 && (
               <span className="text-purple-400 text-sm italic">
-                {typingUsers.length === 1
-                  ? "Someone is typing..."
-                  : "Multiple users typing..."}
+                {typingNames.length === 1
+                  ? `${typingNames[0]} is typing...`
+                  : `${typingNames.join(", ")} are typing...`}
               </span>
             )}
           </div>
@@ -237,13 +252,32 @@ export default function Chat() {
               const isMe = m.sender?._id === currentUserId;
 
               return (
-                <div key={i} className={isMe ? "text-right" : "text-left"}>
-                  <div className={isMe ? "bg-purple-600 inline-block p-2 rounded" : "bg-gray-800 inline-block p-2 rounded"}>
+                <div key={i} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                  <div
+                    className={`px-4 py-2 rounded-xl ${
+                      isMe
+                        ? "bg-purple-600 text-white"
+                        : "bg-gray-800 text-white"
+                    }`}
+                  >
                     {m.text}
+
+                    <div className="text-xs opacity-60 text-right">
+                      {new Date(m.timestamp).toLocaleTimeString()}
+                    </div>
+
+                    {isMe && (
+                      <div className="text-xs text-right">
+                        {m.status === "sent" && "✔"}
+                        {m.status === "delivered" && "✔✔"}
+                        {m.status === "seen" && "✔✔ 💜"}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
             })}
+
             <div ref={bottomRef} />
           </div>
 
@@ -254,6 +288,7 @@ export default function Chat() {
                 value={text}
                 onChange={handleTyping}
                 className="flex-1 bg-gray-800 px-4 py-2 rounded"
+                placeholder="Type a message..."
               />
               <button onClick={sendMessage} className="bg-purple-600 px-4 rounded">
                 Send
